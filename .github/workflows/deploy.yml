@@ -33,8 +33,9 @@ concurrency:
 jobs:
   # The build job compiles our application into static files
   build:
-    # This job will run on the latest Ubuntu runner provided by GitHub
-    runs-on: ubuntu-latest
+    # Using a specific Ubuntu version (22.04) instead of latest
+    # This ensures consistent behavior over time as 'latest' changes
+    runs-on: ubuntu-22.04
     # Steps are individual tasks that run sequentially
     steps:
       # Step 1: Check out the repository code so the workflow can access it
@@ -102,8 +103,9 @@ jobs:
     # This job depends on the build job
     # The deploy job won't start until the build job completes successfully
     needs: build
-    # This job also runs on the latest Ubuntu runner
-    runs-on: ubuntu-latest
+    # Using a specific Ubuntu version (22.04) instead of latest
+    # This ensures consistent behavior over time as 'latest' changes
+    runs-on: ubuntu-22.04
     # Steps for the deploy job
     steps:
       # Step 1: Deploy the site to GitHub Pages
