@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://USERNAME.github.io/nft_dev",
+  "homepage": "https://RandyBoBandy92.github.io/nft_dev",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
