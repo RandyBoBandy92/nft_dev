@@ -10,4 +10,8 @@ export default defineConfig({
   // Base path for GitHub Pages deployment
   // Change 'nft_dev' to your actual repository name when deploying
   base: "/nft_dev/",
+  server: {
+    host: "0.0.0.0",
+    port: 5173,
+  },
 });
