@@ -1,0 +1,119 @@
+# This is the name of our workflow that appears in the GitHub Actions tab
+name: Deploy to GitHub Pages
+
+# This section defines when the workflow will run
+on:
+  # The workflow will run automatically when code is pushed to the main branch
+  push:
+    branches: [main]
+  # This allows you to manually trigger the workflow from the Actions tab in GitHub
+  # Useful for re-running deployments without changing code
+  workflow_dispatch:
+
+# Permissions section - CRITICAL for GitHub Pages deployment
+# These permissions are required for the GitHub Pages deployment to work correctly
+permissions:
+  # Read access to the repository contents
+  contents: read
+  # Write access to GitHub Pages - needed to publish the site
+  pages: write
+  # Write access to the OIDC token - required for deployment authentication
+  id-token: write
+
+# Concurrency settings prevent multiple deployments from running at the same time
+# This avoids conflicts and ensures only one deployment happens at a time
+concurrency:
+  # The group name ensures all jobs related to the same branch/PR will be grouped
+  group: "pages"
+  # This setting cancels any in-progress job in the group when a new one is started
+  # Saves GitHub Actions minutes and ensures only the latest code is deployed
+  cancel-in-progress: true
+
+# Jobs section defines the actual work that will be performed
+jobs:
+  # The build job compiles our application into static files
+  build:
+    # Using a specific Ubuntu version (22.04) instead of latest
+    # This ensures consistent behavior over time as 'latest' changes
+    runs-on: ubuntu-22.04
+    # Steps are individual tasks that run sequentially
+    steps:
+      # Step 1: Check out the repository code so the workflow can access it
+      # This is almost always the first step in any workflow
+      - name: Checkout repository
+        # This uses a pre-built action from the GitHub Marketplace
+        # v4 is the version - generally use the latest stable version
+        uses: actions/checkout@v4
+
+      # Step 2: Install pnpm package manager
+      # This MUST come before setup-node when using pnpm for caching
+      - name: Install pnpm
+        # This action sets up pnpm on the runner
+        uses: pnpm/action-setup@v2
+        with:
+          # Specify which version of pnpm to use
+          version: 8
+          # Don't install dependencies yet - we'll do that later
+          # Setting to false because we want to cache them in the next step
+          run_install: false
+
+      # Step 3: Setup Node.js environment
+      - name: Setup Node.js
+        # Official action to set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          # The version of Node.js to use
+          # You can specify an exact version (e.g., "18.15.0") or a major version with latest minor/patch
+          node-version: "18"
+          # Enables caching of dependencies to speed up workflows
+          # We specify "pnpm" since that's our package manager
+          cache: "pnpm"
+
+      # Step 4: Install project dependencies using pnpm
+      - name: Install dependencies
+        # This is a direct command run in the shell, not an action
+        # It installs all dependencies defined in your package.json
+        run: pnpm install
+
+      # Step 5: Build the application for production
+      - name: Build application
+        # This runs the build script defined in package.json
+        # For a Vite app, this typically runs "vite build"
+        run: pnpm build
+
+      # Step 6: Upload the built files as an artifact for the deployment job
+      - name: Upload build artifact
+        # This action handles artifact creation for GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # The path to the directory containing the built files
+          # For Vite, this is typically "./dist"
+          path: ./dist
+
+  # The deploy job publishes the built site to GitHub Pages
+  # This job runs after the build job and depends on its artifacts
+  deploy:
+    # Define the environment for this job
+    # This connects to the GitHub Pages settings for your repo
+    environment:
+      # The name of the environment
+      name: github-pages
+      # This variable will be set to the URL of your deployed site
+      url: ${{ steps.deployment.outputs.page_url }}
+    # This job depends on the build job
+    # The deploy job won't start until the build job completes successfully
+    needs: build
+    # Using a specific Ubuntu version (22.04) instead of latest
+    # This ensures consistent behavior over time as 'latest' changes
+    runs-on: ubuntu-22.04
+    # Steps for the deploy job
+    steps:
+      # Step 1: Deploy the site to GitHub Pages
+      # This is the only step needed as the artifact is already prepared
+      - name: Deploy to GitHub Pages
+        # This ID is used to reference this step (used in the url environment variable above)
+        id: deployment
+        # This action handles the actual deployment to GitHub Pages
+        uses: actions/deploy-pages@v4
+        # No additional configuration is needed here
+        # The action automatically uses the artifact from the build job

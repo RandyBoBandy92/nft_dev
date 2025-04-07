@@ -1,0 +1,6 @@
+Please replace this with the monkey-nft.png image file.
+
+This should be an NFT artwork similar to what's seen in the landing_page.png style guide.
+The image should feature a cartoon monkey character with sunglasses, similar to popular NFT collections like BAYC.
+
+File should be placed at: src/assets/monkey-nft.png 
