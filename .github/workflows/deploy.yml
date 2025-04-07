@@ -1,0 +1,71 @@
+# Name of our overall Action
+name: Deploy To GitHub Pages
+
+# on defines WHEN the action(s) will run
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+# permissions grant our image runner the ability to read/write files
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 2 commits made to main, this will cancel the first, and only run the second
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+# jobs defines WHAT action(s) will run
+jobs:
+  # build is the name of the job, this can be set to whatever you want
+  build:
+    # each job is executed on an image, in this case ubuntu-22.04
+    runs-on: ubuntu-22.04
+    # steps are essentially tasks
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        # each step has a name, and either a command (like run) or
+        # leverage an existing pre-made step like pnpm/action-setup
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          run_install: false
+        # so if uses "calls" this action-setup, like a function
+        # with is the arguments provided to that function
+        # aka pnpmActionSetup(8, false)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install
+      - name: Build Application
+        run: pnpm build
+      - name: Upload Build Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+        # an artifact prepares your static files for GH Pages deployment
+        # and makes them available for the next job
+  deploy:
+    # deploy is our next job after build, which again we name whatever we want
+    environment:
+      # setting environment variables for this job
+      name: github-pages
+      url: ${{steps.deployment.outputs.page_url}}
+      # if build fails, deploy will not run.. hence it "needs" build
+    needs: build
+    runs-on: ubuntu-22.04
+    # each job must have a runs-on specified
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        # no additional config required, the prebuilt deploy-pages action
+        # takes care of the rest, it automaticlly will find and use
+        # the artifact we generated from the build job
